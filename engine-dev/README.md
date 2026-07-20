@@ -1,8 +1,36 @@
 # Engine Dev
 
-Interface temporária e módulo técnico das ETAPAS 02 e 03.
+Módulo técnico do Binaural Flow com motor de áudio, ciclo de vida móvel e interface principal do reprodutor.
 
-## Características
+## Situação das etapas
+
+- ETAPA 02: motor binaural concluído;
+- ETAPA 03: ciclo de vida móvel e recuperação concluídos;
+- ETAPA 04: interface principal do reprodutor implementada.
+
+## Interface principal
+
+A interface usa exclusivamente a API pública do `AudioEngine`. Ela não acessa diretamente `AudioContext`, osciladores, ganhos, merger, compressor ou parâmetros de áudio.
+
+Recursos visuais e operacionais:
+
+- experiência mobile-first em Glassmorphism;
+- visualizador holográfico em Canvas;
+- knobs independentes para os canais L e R;
+- ajuste por toque, arraste, mouse, roda e teclado;
+- cálculo em tempo real de `R − L`;
+- identificação visual de Near Mono, Delta, Theta, Alpha, Beta e Gamma;
+- transição cromática suave de dois segundos;
+- reprodução, pausa, retomada, parada e restauração;
+- volume limitado pelo teto de segurança do motor;
+- timer baseado no estado real da sessão;
+- diagnóstico técnico em gaveta recolhível;
+- recuperação após suspensão externa;
+- controles de atualização segura da PWA.
+
+A interface não implementa catálogo, favoritos, histórico, sons ambientes, ruídos, batidas isocrônicas, importação, exportação ou backend.
+
+## Características do núcleo
 
 - TypeScript estrito;
 - nenhuma criação automática de `AudioContext`;
@@ -13,12 +41,10 @@ Interface temporária e módulo técnico das ETAPAS 02 e 03.
 - limiter de proteção;
 - fade-in, fade-out e rampas de frequência;
 - máquina de estados explícita;
-- eventos tipados;
 - pausa manual diferenciada de suspensão externa;
-- Wake Lock opcional;
-- Media Session opcional;
+- Wake Lock e Media Session opcionais;
 - atualização de PWA sem recarga automática durante sessão;
-- testes sem áudio real por meio de mocks mínimos da Web Audio API.
+- testes com mocks mínimos da Web Audio API.
 
 ## Comandos
 
@@ -32,4 +58,4 @@ npm run build
 npm run preview
 ```
 
-O lint técnico é executado por script local, sem dependência de plugin. Os testes utilizam o runner nativo do Node após compilação TypeScript.
+Após o build, a interface compilada fica em `engine-dev/dist`. O preview local usa `http://127.0.0.1:4173`.
