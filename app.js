@@ -1,1 +1,593 @@
-(()=>{"use strict";const P=[{id:"focus",name:"Foco profundo",band:"Beta",beat:18,carrier:200,min:25,desc:"ativação moderada"},{id:"relax",name:"Relaxar",band:"Alpha",beat:10,carrier:200,min:20,desc:"ritmo estável"},{id:"sleep",name:"Dormir",band:"Delta",beat:2,carrier:180,min:30,desc:"ritmo lento"},{id:"meditate",name:"Meditar",band:"Theta",beat:6,carrier:190,min:25,desc:"baixa ativação"},{id:"create",name:"Criar",band:"Alpha",beat:12,carrier:205,min:25,desc:"fluxo equilibrado"},{id:"energy",name:"Energia",band:"Beta",beat:20,carrier:210,min:20,desc:"ativação contínua"},{id:"reset",name:"Pausa mental",band:"Alpha",beat:8,carrier:195,min:12,desc:"sessão curta"},{id:"wake",name:"Despertar",band:"Beta",beat:16,carrier:220,min:15,desc:"entrada gradual"}];const S={id:"focus",name:"Foco profundo",band:"Beta",beat:18,carrier:200,min:25,left:1500,playing:false,paused:false,ctx:null,nodes:null,gain:null,timer:null};const $=id=>document.getElementById(id),fmt=s=>`${String(Math.floor(Math.max(0,s)/60)).padStart(2,"0")}:${String(Math.max(0,s)%60).padStart(2,"0")}`;function toast(m){const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(toast.t);toast.t=setTimeout(()=>t.classList.remove("show"),2500)}function installVisual(){const host=document.querySelector(".visual");if(!host||$("waveCanvas"))return;const canvas=document.createElement("canvas");canvas.id="waveCanvas";canvas.className="wave-canvas";canvas.setAttribute("aria-hidden","true");const disc=document.querySelector(".disc");host.insertBefore(canvas,disc);[["L","channel-left"],["R","channel-right"]].forEach(([txt,cls])=>{const d=document.createElement("div");d.className=`channel-orb ${cls}`;d.textContent=txt;d.setAttribute("aria-hidden","true");host.appendChild(d)});const c=canvas.getContext("2d",{alpha:true});let w=1,h=1,dpr=1,phase=0,stars=[];function resize(){const r=host.getBoundingClientRect();w=Math.max(1,r.width);h=Math.max(1,r.height);dpr=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);canvas.style.width=w+"px";canvas.style.height=h+"px";c.setTransform(dpr,0,0,dpr,0,0);stars=Array.from({length:52},(_,i)=>({a:i/52*Math.PI*2,r:.31+Math.random()*.17,s:.0012+Math.random()*.0022,o:.15+Math.random()*.55}))}function grad(x1,x2){const g=c.createLinearGradient(x1,0,x2,0);g.addColorStop(0,"rgba(139,92,246,0)");g.addColorStop(.19,"rgba(159,88,255,.86)");g.addColorStop(.5,"rgba(60,220,255,.98)");g.addColorStop(.79,"rgba(71,137,255,.9)");g.addColorStop(1,"rgba(139,92,246,0)");return g}function sphere(cx,cy,r,on){const g=c.createRadialGradient(cx-r*.23,cy-r*.3,r*.03,cx,cy,r);g.addColorStop(0,"rgba(80,221,255,.17)");g.addColorStop(.38,"rgba(52,118,255,.09)");g.addColorStop(.7,"rgba(139,73,255,.065)");g.addColorStop(1,"rgba(5,8,20,0)");c.fillStyle=g;c.beginPath();c.arc(cx,cy,r,0,Math.PI*2);c.fill();c.save();c.translate(cx,cy);for(let i=0;i<13;i++){const rr=r*(.35+i*.05);c.beginPath();c.ellipse(0,0,rr,rr*(.22+.025*Math.sin(phase*.45+i)),phase*.04+i*.105,0,Math.PI*2);c.strokeStyle=`rgba(${i%2?71:146},${i%2?151:87},255,${.04+i*.008})`;c.lineWidth=.7;c.stroke()}c.restore();[.78,.94,1.1].forEach((q,i)=>{c.beginPath();c.arc(cx,cy,r*q,0,Math.PI*2);c.strokeStyle=`rgba(${i===1?140:69},${i===1?87:155},255,${.16-i*.035})`;c.lineWidth=.8;c.stroke()});stars.forEach((p,i)=>{p.a+=p.s*(on?2.2:1);const rr=r*p.r*(1+.08*Math.sin(phase*.7+i));const x=cx+Math.cos(p.a)*rr,y=cy+Math.sin(p.a)*rr*.77;c.fillStyle=`rgba(${i%3?69:158},${i%3?177:88},255,${p.o})`;c.beginPath();c.arc(x,y,on?1.45:1,0,Math.PI*2);c.fill()})}function wave(cx,cy,r,on){const layers=on?12:8,amp=r*(on?.25:.15);for(let j=0;j<layers;j++){c.beginPath();const a=cx-r*1.14,b=cx+r*1.14,step=(b-a)/230;for(let x=a;x<=b;x+=step){const n=(x-cx)/r,e=Math.pow(Math.max(0,1-Math.abs(n)*.8),1.1),v=Math.sin(n*11.5+phase*1.7+j*.11)*.42+Math.sin(n*24-phase*1.07-j*.07)*.25+Math.sin(n*40+phase*.7)*.13+Math.exp(-n*n*8)*Math.sin(n*54+phase*2.2)*.34,y=cy+v*amp*e+(j-(layers-1)/2)*2.25;x===a?c.moveTo(x,y):c.lineTo(x,y)}c.strokeStyle=grad(a,b);c.globalAlpha=.13+j/layers*.08;c.lineWidth=j===Math.floor(layers/2)?1.9:.8;c.stroke()}c.globalAlpha=1;const flare=grad(cx-r,cx+r);c.strokeStyle=flare;c.lineWidth=1;c.beginPath();c.moveTo(cx-r,cy);c.lineTo(cx+r,cy);c.stroke()}function frame(){c.clearRect(0,0,w,h);phase+=S.playing&&!S.paused?.033:.011;const cx=w/2,cy=h/2,r=Math.min(w,h)*.335;sphere(cx,cy,r,S.playing&&!S.paused);wave(cx,cy,r,S.playing&&!S.paused);requestAnimationFrame(frame)}new ResizeObserver(resize).observe(host);resize();requestAnimationFrame(frame)}function renderPresets(){const box=$("presets");box.innerHTML="";P.forEach(p=>{const b=document.createElement("button");b.className="preset";b.dataset.id=p.id;b.innerHTML=`<b>${p.name}</b><small>${p.band} · ${p.beat} Hz</small>`;b.onclick=()=>select(p.id);box.appendChild(b)})}function ui(){const total=S.min*60;$("title").textContent=S.name;$("subtitle").textContent=`${S.band} ${S.beat} Hz · ${P.find(p=>p.id===S.id)?.desc||"configuração personalizada"}`;$("left").textContent=`${S.carrier} Hz`;$("beat").textContent=`${S.beat} Hz`;$("right").textContent=`${S.carrier+S.beat} Hz`;$("leftSide").textContent=`${S.carrier} Hz`;$("rightSide").textContent=`${S.carrier+S.beat} Hz`;$("duration").textContent=`${S.min} min`;$("carrierMeta").textContent=`${S.carrier} Hz`;$("status").textContent=S.playing?(S.paused?"Pausado":"Reproduzindo"):"Pronto";$("timer").textContent=fmt(S.left);$("label").textContent=S.playing?(S.paused?"sessão pausada":"sessão em andamento"):"pronto para iniciar";$("play").textContent=S.playing&&!S.paused?"Ⅱ":"▶";const d=total?360*(1-S.left/total):0;$("disc").style.background=`conic-gradient(from -90deg,var(--violet) 0deg,var(--blue) ${d}deg,rgba(255,255,255,.07) ${d}deg)`;document.body.classList.toggle("playing",S.playing&&!S.paused);document.querySelectorAll(".preset").forEach(b=>b.classList.toggle("active",b.dataset.id===S.id))}async function audio(){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error("Este navegador não oferece Web Audio API.");if(!S.ctx||S.ctx.state==="closed")S.ctx=new AC;if(S.ctx.state==="suspended")await S.ctx.resume();clearNodes();const c=S.ctx,l=c.createOscillator(),r=c.createOscillator(),lg=c.createGain(),rg=c.createGain(),m=c.createChannelMerger(2),g=c.createGain(),lim=c.createDynamicsCompressor();l.type=r.type="sine";l.frequency.setValueAtTime(S.carrier,c.currentTime);r.frequency.setValueAtTime(S.carrier+S.beat,c.currentTime);lg.gain.value=rg.gain.value=.5;g.gain.setValueAtTime(.0001,c.currentTime);g.gain.linearRampToValueAtTime(+$('volume').value,c.currentTime+1.25);lim.threshold.value=-18;lim.knee.value=10;lim.ratio.value=12;lim.attack.value=.003;lim.release.value=.25;l.connect(lg);r.connect(rg);lg.connect(m,0,0);rg.connect(m,0,1);m.connect(g);g.connect(lim);lim.connect(c.destination);l.start();r.start();S.nodes=[l,r,lg,rg,m,lim];S.gain=g}function clearNodes(){if(S.nodes){S.nodes.forEach(n=>{try{n.stop()}catch{}try{n.disconnect()}catch{}});S.nodes=null}if(S.gain){try{S.gain.disconnect()}catch{}S.gain=null}}function clock(){clearInterval(S.timer);S.timer=setInterval(()=>{if(S.playing&&!S.paused){S.left--;if(S.left<=0){S.left=0;stop(false);toast("Sessão concluída.")}ui()}},1000)}async function play(){try{if(!S.playing){await audio();S.playing=true;S.paused=false;clock();toast("Sessão iniciada em volume baixo.")}else if(!S.paused){await S.ctx.suspend();S.paused=true;clearInterval(S.timer);toast("Sessão pausada.")}else{await S.ctx.resume();S.paused=false;clock();toast("Sessão retomada.")}ui()}catch(e){toast(e.message||"Não foi possível iniciar o áudio.")}}function fade(sec=.17){if(S.ctx&&S.gain){const n=S.ctx.currentTime;try{S.gain.gain.cancelScheduledValues(n);S.gain.gain.setValueAtTime(Math.max(S.gain.gain.value,.0001),n);S.gain.gain.linearRampToValueAtTime(.0001,n+sec)}catch{}setTimeout(clearNodes,(sec+.05)*1000)}else clearNodes()}function stop(reset=true){clearInterval(S.timer);S.timer=null;fade();S.playing=S.paused=false;if(reset)S.left=S.min*60;ui()}function select(id){const p=P.find(x=>x.id===id);if(!p)return;stop(false);Object.assign(S,{id:p.id,name:p.name,band:p.band,beat:p.beat,carrier:p.carrier,min:p.min,left:p.min*60});$("carrierInput").value=p.carrier;$("beatInput").value=p.beat;$("durationInput").value=p.min;ui();toast(`Atmosfera “${p.name}” selecionada.`)}function apply(){const carrier=+$("carrierInput").value,beat=+$("beatInput").value,min=+$("durationInput").value;if(!Number.isFinite(carrier)||carrier<80||carrier>500)return toast("Portadora: use um valor entre 80 e 500 Hz.");if(!Number.isFinite(beat)||beat<.5||beat>50)return toast("Diferença: use um valor entre 0,5 e 50 Hz.");if(!Number.isFinite(min)||min<1||min>180)return toast("Duração: use um valor entre 1 e 180 minutos.");stop(false);Object.assign(S,{id:"custom",name:"Sessão personalizada",band:"Custom",beat,carrier,min,left:min*60});ui();toast("Configuração aplicada.")}async function fullscreen(){try{document.fullscreenElement?await document.exitFullscreen?.():await document.documentElement.requestFullscreen?.()}catch{toast("A tela cheia depende da permissão do navegador.")}}function bind(){$("play").onclick=play;$("stop").onclick=()=>stop(true);$("reset").onclick=()=>{stop(true);toast("Sessão reiniciada.")};$("panic").onclick=()=>{clearInterval(S.timer);fade(.035);S.playing=S.paused=false;ui();toast("Áudio interrompido.")};$("apply").onclick=apply;$("full").onclick=fullscreen;$("fullMobile").onclick=fullscreen;$("volume").oninput=()=>{const v=+$("volume").value;$("vol").textContent=Math.round(v/.3*100)+"%";if(S.ctx&&S.gain){const n=S.ctx.currentTime;S.gain.gain.cancelScheduledValues(n);S.gain.gain.linearRampToValueAtTime(v,n+.08)}};addEventListener("beforeunload",clearNodes)}renderPresets();installVisual();bind();ui()})();
+(() => {
+  "use strict";
+
+  const FREQUENCY_MIN = 80;
+  const FREQUENCY_MAX = 500;
+  const FREQUENCY_STEP = 1;
+  const DEFAULTS = Object.freeze({ left: 200, right: 206, volume: 0.10, duration: 1500 });
+
+  const STATE_DEFINITIONS = Object.freeze([
+    { id: "near", min: 0, max: 0.5, label: "Near Mono", range: "0–0.5 Hz", color: "#5B6478" },
+    { id: "delta", min: 0.5, max: 4, label: "Delta State", range: "0.5–4 Hz", color: "#004B23" },
+    { id: "theta", min: 4, max: 8, label: "Theta State", range: "4–8 Hz", color: "#8A2BE2" },
+    { id: "alpha", min: 8, max: 12, label: "Alpha State", range: "8–12 Hz", color: "#00F0FF" },
+    { id: "beta", min: 12, max: 30, label: "Beta State", range: "12–30 Hz", color: "#FF8A00" },
+    { id: "gamma", min: 30, max: Infinity, label: "Gamma State", range: "30+ Hz", color: "#FF2D95" }
+  ]);
+
+  const PRESETS = Object.freeze({
+    delta: { left: 200, right: 202 },
+    theta: { left: 200, right: 206 },
+    alpha: { left: 200, right: 210 }
+  });
+
+  const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+  const $ = (id) => document.getElementById(id);
+
+  class BinauralEngine {
+    constructor() {
+      this.context = null;
+      this.leftOscillator = null;
+      this.rightOscillator = null;
+      this.masterGain = null;
+      this.nodes = [];
+      this.status = "idle";
+    }
+
+    async ensureContext() {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioContextClass) throw new Error("Este navegador não oferece suporte à Web Audio API.");
+      if (!this.context || this.context.state === "closed") this.context = new AudioContextClass();
+      if (this.context.state === "suspended") await this.context.resume();
+    }
+
+    async start(leftHz, rightHz, volume) {
+      await this.ensureContext();
+      this.disposeNodes();
+
+      const ctx = this.context;
+      const leftOscillator = ctx.createOscillator();
+      const rightOscillator = ctx.createOscillator();
+      const leftGain = ctx.createGain();
+      const rightGain = ctx.createGain();
+      const merger = ctx.createChannelMerger(2);
+      const masterGain = ctx.createGain();
+      const limiter = ctx.createDynamicsCompressor();
+
+      leftOscillator.type = "sine";
+      rightOscillator.type = "sine";
+      leftOscillator.frequency.setValueAtTime(leftHz, ctx.currentTime);
+      rightOscillator.frequency.setValueAtTime(rightHz, ctx.currentTime);
+      leftGain.gain.setValueAtTime(0.5, ctx.currentTime);
+      rightGain.gain.setValueAtTime(0.5, ctx.currentTime);
+
+      masterGain.gain.setValueAtTime(0.0001, ctx.currentTime);
+      masterGain.gain.linearRampToValueAtTime(volume, ctx.currentTime + 1.2);
+
+      limiter.threshold.setValueAtTime(-18, ctx.currentTime);
+      limiter.knee.setValueAtTime(10, ctx.currentTime);
+      limiter.ratio.setValueAtTime(12, ctx.currentTime);
+      limiter.attack.setValueAtTime(0.003, ctx.currentTime);
+      limiter.release.setValueAtTime(0.25, ctx.currentTime);
+
+      leftOscillator.connect(leftGain);
+      rightOscillator.connect(rightGain);
+      leftGain.connect(merger, 0, 0);
+      rightGain.connect(merger, 0, 1);
+      merger.connect(masterGain);
+      masterGain.connect(limiter);
+      limiter.connect(ctx.destination);
+
+      leftOscillator.start();
+      rightOscillator.start();
+
+      this.leftOscillator = leftOscillator;
+      this.rightOscillator = rightOscillator;
+      this.masterGain = masterGain;
+      this.nodes = [leftOscillator, rightOscillator, leftGain, rightGain, merger, limiter];
+      this.status = "running";
+    }
+
+    async pause() {
+      if (!this.context || this.status !== "running") return;
+      await this.context.suspend();
+      this.status = "paused";
+    }
+
+    async resume() {
+      if (!this.context || this.status !== "paused") return;
+      await this.context.resume();
+      this.status = "running";
+    }
+
+    updateFrequencies(leftHz, rightHz) {
+      if (!this.context || !this.leftOscillator || !this.rightOscillator) return;
+      const now = this.context.currentTime;
+      this.leftOscillator.frequency.setTargetAtTime(leftHz, now, 0.025);
+      this.rightOscillator.frequency.setTargetAtTime(rightHz, now, 0.025);
+    }
+
+    setVolume(volume) {
+      if (!this.context || !this.masterGain) return;
+      const now = this.context.currentTime;
+      this.masterGain.gain.cancelScheduledValues(now);
+      this.masterGain.gain.setTargetAtTime(volume, now, 0.035);
+    }
+
+    stop(fadeSeconds = 0.16) {
+      if (!this.context || !this.masterGain) {
+        this.disposeNodes();
+        this.status = "idle";
+        return;
+      }
+      const now = this.context.currentTime;
+      try {
+        this.masterGain.gain.cancelScheduledValues(now);
+        this.masterGain.gain.setValueAtTime(Math.max(this.masterGain.gain.value, 0.0001), now);
+        this.masterGain.gain.linearRampToValueAtTime(0.0001, now + fadeSeconds);
+      } catch (_) {}
+      window.setTimeout(() => this.disposeNodes(), Math.ceil((fadeSeconds + 0.05) * 1000));
+      this.status = "idle";
+    }
+
+    disposeNodes() {
+      this.nodes.forEach((node) => {
+        try { node.stop?.(); } catch (_) {}
+        try { node.disconnect?.(); } catch (_) {}
+      });
+      this.nodes = [];
+      this.leftOscillator = null;
+      this.rightOscillator = null;
+      this.masterGain = null;
+    }
+  }
+
+  class RotaryKnob {
+    constructor(element, options) {
+      this.element = element;
+      this.value = options.value;
+      this.min = options.min;
+      this.max = options.max;
+      this.step = options.step;
+      this.onChange = options.onChange;
+      this.drag = null;
+      this.bind();
+      this.render();
+    }
+
+    bind() {
+      this.element.addEventListener("pointerdown", (event) => this.handlePointerDown(event));
+      this.element.addEventListener("pointermove", (event) => this.handlePointerMove(event));
+      this.element.addEventListener("pointerup", (event) => this.handlePointerUp(event));
+      this.element.addEventListener("pointercancel", (event) => this.handlePointerUp(event));
+      this.element.addEventListener("keydown", (event) => this.handleKeyDown(event));
+      this.element.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        this.setValue(this.value + (event.deltaY < 0 ? this.step : -this.step));
+      }, { passive: false });
+    }
+
+    handlePointerDown(event) {
+      event.preventDefault();
+      this.element.setPointerCapture(event.pointerId);
+      this.element.classList.add("is-dragging");
+      this.drag = { pointerId: event.pointerId, startY: event.clientY, startX: event.clientX, startValue: this.value };
+    }
+
+    handlePointerMove(event) {
+      if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+      const verticalDelta = this.drag.startY - event.clientY;
+      const horizontalDelta = event.clientX - this.drag.startX;
+      const combinedDelta = verticalDelta + horizontalDelta * 0.45;
+      this.setValue(this.drag.startValue + combinedDelta * 0.55);
+    }
+
+    handlePointerUp(event) {
+      if (!this.drag || this.drag.pointerId !== event.pointerId) return;
+      this.element.releasePointerCapture?.(event.pointerId);
+      this.element.classList.remove("is-dragging");
+      this.drag = null;
+    }
+
+    handleKeyDown(event) {
+      const increments = {
+        ArrowUp: this.step,
+        ArrowRight: this.step,
+        ArrowDown: -this.step,
+        ArrowLeft: -this.step,
+        PageUp: this.step * 10,
+        PageDown: -this.step * 10
+      };
+      if (event.key === "Home") {
+        event.preventDefault();
+        this.setValue(this.min);
+      } else if (event.key === "End") {
+        event.preventDefault();
+        this.setValue(this.max);
+      } else if (Object.prototype.hasOwnProperty.call(increments, event.key)) {
+        event.preventDefault();
+        this.setValue(this.value + increments[event.key]);
+      }
+    }
+
+    setValue(nextValue, emit = true) {
+      const stepped = Math.round(nextValue / this.step) * this.step;
+      const clamped = clamp(stepped, this.min, this.max);
+      if (clamped === this.value) return;
+      this.value = clamped;
+      this.render();
+      if (emit) this.onChange(this.value);
+    }
+
+    render() {
+      const normalized = (this.value - this.min) / (this.max - this.min);
+      const angle = -135 + normalized * 270;
+      this.element.style.setProperty("--angle", `${angle}deg`);
+      this.element.setAttribute("aria-valuenow", String(this.value));
+      this.element.setAttribute("aria-valuetext", `${this.value} hertz`);
+    }
+  }
+
+  class WaveVisualizer {
+    constructor(canvas, getState) {
+      this.canvas = canvas;
+      this.context = canvas.getContext("2d", { alpha: true });
+      this.getState = getState;
+      this.phase = 0;
+      this.width = 1;
+      this.height = 1;
+      this.resizeObserver = new ResizeObserver(() => this.resize());
+      this.resizeObserver.observe(canvas.parentElement);
+      this.resize();
+      requestAnimationFrame(() => this.frame());
+    }
+
+    resize() {
+      const rect = this.canvas.parentElement.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      this.width = Math.max(1, rect.width);
+      this.height = Math.max(1, rect.height);
+      this.canvas.width = Math.round(this.width * ratio);
+      this.canvas.height = Math.round(this.height * ratio);
+      this.canvas.style.width = `${this.width}px`;
+      this.canvas.style.height = `${this.height}px`;
+      this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    }
+
+    frame() {
+      const { difference, playing, accent } = this.getState();
+      const ctx = this.context;
+      const w = this.width;
+      const h = this.height;
+      ctx.clearRect(0, 0, w, h);
+      this.phase += playing ? 0.05 : 0.018;
+
+      const centerY = h * 0.5;
+      const amplitude = Math.min(h * 0.25, 28 + difference * 2.2);
+      const layers = playing ? 12 : 8;
+      const gradient = ctx.createLinearGradient(0, 0, w, 0);
+      gradient.addColorStop(0, "rgba(255,255,255,0)");
+      gradient.addColorStop(0.2, `${accent}aa`);
+      gradient.addColorStop(0.5, `${accent}ff`);
+      gradient.addColorStop(0.8, `${accent}aa`);
+      gradient.addColorStop(1, "rgba(255,255,255,0)");
+
+      ctx.save();
+      ctx.globalCompositeOperation = "lighter";
+      for (let layer = 0; layer < layers; layer += 1) {
+        ctx.beginPath();
+        for (let x = 0; x <= w; x += 3) {
+          const n = (x / w) * 2 - 1;
+          const envelope = Math.pow(Math.max(0, 1 - Math.abs(n)), 0.65);
+          const wave =
+            Math.sin(n * (13 + difference * 0.18) + this.phase * 2 + layer * 0.09) * 0.52 +
+            Math.sin(n * 29 - this.phase * 1.15 - layer * 0.06) * 0.25 +
+            Math.sin(n * 47 + this.phase * 0.72) * 0.12;
+          const y = centerY + wave * amplitude * envelope + (layer - layers / 2) * 2.1;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = gradient;
+        ctx.globalAlpha = 0.08 + layer / layers * 0.08;
+        ctx.lineWidth = layer === Math.floor(layers / 2) ? 1.8 : 0.8;
+        ctx.stroke();
+      }
+      ctx.restore();
+      requestAnimationFrame(() => this.frame());
+    }
+  }
+
+  class MatrixGraph {
+    constructor(canvas) {
+      this.canvas = canvas;
+      this.context = canvas.getContext("2d");
+      this.left = DEFAULTS.left;
+      this.right = DEFAULTS.right;
+      this.accent = "#8A2BE2";
+      new ResizeObserver(() => this.render()).observe(canvas.parentElement);
+    }
+
+    update(left, right, accent) {
+      this.left = left;
+      this.right = right;
+      this.accent = accent;
+      this.render();
+    }
+
+    render() {
+      const rect = this.canvas.getBoundingClientRect();
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(280, rect.width || 420);
+      const height = 100;
+      this.canvas.width = Math.round(width * ratio);
+      this.canvas.height = Math.round(height * ratio);
+      this.context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      const ctx = this.context;
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.strokeStyle = "rgba(255,255,255,.07)";
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= width; x += width / 8) {
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, height); ctx.stroke();
+      }
+      for (let y = 0; y <= height; y += 25) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+      }
+
+      const draw = (frequency, offset, alpha) => {
+        ctx.beginPath();
+        for (let x = 0; x <= width; x += 2) {
+          const y = height / 2 + Math.sin((x / width) * Math.PI * 7 + offset) * 18 * Math.sin((x / width) * Math.PI);
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = `${this.accent}${alpha}`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        const markerX = ((frequency - FREQUENCY_MIN) / (FREQUENCY_MAX - FREQUENCY_MIN)) * width;
+        ctx.fillStyle = this.accent;
+        ctx.shadowColor = this.accent;
+        ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(markerX, height / 2, 3.5, 0, Math.PI * 2); ctx.fill();
+        ctx.shadowBlur = 0;
+      };
+
+      draw(this.left, 0, "b8");
+      draw(this.right, 0.8, "7d");
+    }
+  }
+
+  class AppController {
+    constructor() {
+      const stored = this.loadStoredState();
+      this.left = stored.left;
+      this.right = stored.right;
+      this.volume = stored.volume;
+      this.duration = stored.duration;
+      this.remaining = this.duration;
+      this.timer = null;
+      this.engine = new BinauralEngine();
+      this.currentState = this.resolveState();
+
+      this.leftKnob = new RotaryKnob($("leftKnob"), {
+        min: FREQUENCY_MIN, max: FREQUENCY_MAX, step: FREQUENCY_STEP, value: this.left,
+        onChange: (value) => this.setFrequency("left", value)
+      });
+      this.rightKnob = new RotaryKnob($("rightKnob"), {
+        min: FREQUENCY_MIN, max: FREQUENCY_MAX, step: FREQUENCY_STEP, value: this.right,
+        onChange: (value) => this.setFrequency("right", value)
+      });
+
+      this.wave = new WaveVisualizer($("waveCanvas"), () => ({
+        difference: Math.abs(this.right - this.left),
+        playing: this.engine.status === "running",
+        accent: this.currentState.color
+      }));
+      this.matrix = new MatrixGraph($("matrixCanvas"));
+      this.bind();
+      this.syncInputs();
+      this.render();
+    }
+
+    loadStoredState() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("binaural-flow-state") || "null");
+        if (!saved) return { ...DEFAULTS };
+        return {
+          left: clamp(Number(saved.left) || DEFAULTS.left, FREQUENCY_MIN, FREQUENCY_MAX),
+          right: clamp(Number(saved.right) || DEFAULTS.right, FREQUENCY_MIN, FREQUENCY_MAX),
+          volume: clamp(Number(saved.volume) || DEFAULTS.volume, 0, 0.3),
+          duration: [900, 1500, 2700, 3600].includes(Number(saved.duration)) ? Number(saved.duration) : DEFAULTS.duration
+        };
+      } catch (_) {
+        return { ...DEFAULTS };
+      }
+    }
+
+    saveState() {
+      localStorage.setItem("binaural-flow-state", JSON.stringify({
+        left: this.left,
+        right: this.right,
+        volume: this.volume,
+        duration: this.duration
+      }));
+    }
+
+    bind() {
+      document.querySelectorAll("[data-adjust]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const side = button.dataset.adjust;
+          const delta = Number(button.dataset.delta);
+          const knob = side === "left" ? this.leftKnob : this.rightKnob;
+          knob.setValue(knob.value + delta);
+        });
+      });
+
+      document.querySelectorAll("[data-preset]").forEach((button) => {
+        button.addEventListener("click", () => this.applyPreset(button.dataset.preset));
+      });
+
+      $("playButton").addEventListener("click", () => this.togglePlayback());
+      $("stopButton").addEventListener("click", () => this.stopPlayback(true));
+      $("resetButton").addEventListener("click", () => this.reset());
+      $("volume").addEventListener("input", (event) => {
+        this.volume = Number(event.target.value);
+        this.engine.setVolume(this.volume);
+        this.saveState();
+        this.renderVolume();
+      });
+      $("duration").addEventListener("change", (event) => {
+        this.duration = Number(event.target.value);
+        if (this.engine.status === "idle") this.remaining = this.duration;
+        this.saveState();
+        this.renderTimer();
+      });
+      addEventListener("beforeunload", () => this.engine.disposeNodes());
+    }
+
+    syncInputs() {
+      $("volume").value = String(this.volume);
+      $("duration").value = String(this.duration);
+    }
+
+    resolveState() {
+      const difference = Math.abs(this.right - this.left);
+      return STATE_DEFINITIONS.find((state) => difference >= state.min && difference < state.max) || STATE_DEFINITIONS.at(-1);
+    }
+
+    setFrequency(side, value) {
+      if (side === "left") this.left = value; else this.right = value;
+      this.engine.updateFrequencies(this.left, this.right);
+      this.currentState = this.resolveState();
+      this.saveState();
+      this.render();
+    }
+
+    applyPreset(name) {
+      const preset = PRESETS[name];
+      if (!preset) return;
+      this.left = preset.left;
+      this.right = preset.right;
+      this.leftKnob.setValue(this.left, false);
+      this.rightKnob.setValue(this.right, false);
+      this.engine.updateFrequencies(this.left, this.right);
+      this.currentState = this.resolveState();
+      this.saveState();
+      this.render();
+      this.toast(`${this.currentState.label} aplicado.`);
+    }
+
+    async togglePlayback() {
+      try {
+        if (this.engine.status === "idle") {
+          await this.engine.start(this.left, this.right, this.volume);
+          this.startTimer();
+          this.toast("Sessão iniciada em volume baixo.");
+        } else if (this.engine.status === "running") {
+          await this.engine.pause();
+          clearInterval(this.timer);
+          this.toast("Sessão pausada.");
+        } else if (this.engine.status === "paused") {
+          await this.engine.resume();
+          this.startTimer();
+          this.toast("Sessão retomada.");
+        }
+        this.renderTransport();
+      } catch (error) {
+        this.toast(error.message || "Não foi possível iniciar o áudio.");
+      }
+    }
+
+    stopPlayback(resetTimer) {
+      clearInterval(this.timer);
+      this.timer = null;
+      this.engine.stop();
+      if (resetTimer) this.remaining = this.duration;
+      this.renderTransport();
+      this.renderTimer();
+    }
+
+    startTimer() {
+      clearInterval(this.timer);
+      this.timer = setInterval(() => {
+        if (this.engine.status !== "running") return;
+        this.remaining -= 1;
+        if (this.remaining <= 0) {
+          this.remaining = 0;
+          this.stopPlayback(false);
+          this.toast("Sessão concluída.");
+        }
+        this.renderTimer();
+      }, 1000);
+    }
+
+    reset() {
+      this.stopPlayback(true);
+      this.left = DEFAULTS.left;
+      this.right = DEFAULTS.right;
+      this.volume = DEFAULTS.volume;
+      this.duration = DEFAULTS.duration;
+      this.remaining = DEFAULTS.duration;
+      this.leftKnob.setValue(this.left, false);
+      this.rightKnob.setValue(this.right, false);
+      this.currentState = this.resolveState();
+      this.syncInputs();
+      this.saveState();
+      this.render();
+      this.toast("Valores padrão restaurados.");
+    }
+
+    render() {
+      const difference = this.right - this.left;
+      this.currentState = this.resolveState();
+      document.body.style.setProperty("--accent", this.currentState.color);
+      document.body.dataset.state = this.currentState.id;
+
+      $("leftKnobValue").textContent = String(this.left);
+      $("rightKnobValue").textContent = String(this.right);
+      $("leftOutput").textContent = `${this.left} Hz`;
+      $("rightOutput").textContent = `${this.right} Hz`;
+      $("differenceValue").textContent = `${difference >= 0 ? "+" : ""}${difference.toFixed(2)}`;
+      $("stateLabel").textContent = this.currentState.label;
+      $("stateRange").textContent = this.currentState.range;
+      $("matrixState").textContent = this.currentState.id.toUpperCase();
+
+      document.querySelectorAll("[data-preset]").forEach((button) => {
+        button.classList.toggle("active", button.dataset.preset === this.currentState.id);
+      });
+
+      this.matrix.update(this.left, this.right, this.currentState.color);
+      this.renderVolume();
+      this.renderTimer();
+      this.renderTransport();
+    }
+
+    renderVolume() {
+      $("volumeOutput").textContent = `${Math.round((this.volume / 0.3) * 100)}%`;
+    }
+
+    renderTimer() {
+      const minutes = Math.floor(Math.max(0, this.remaining) / 60).toString().padStart(2, "0");
+      const seconds = (Math.max(0, this.remaining) % 60).toString().padStart(2, "0");
+      $("timerOutput").textContent = `${minutes}:${seconds}`;
+    }
+
+    renderTransport() {
+      const isPlaying = this.engine.status === "running";
+      const isPaused = this.engine.status === "paused";
+      document.body.classList.toggle("is-playing", isPlaying);
+      $("playIcon").textContent = isPlaying ? "Ⅱ" : "▶";
+      $("playButton").setAttribute("aria-label", isPlaying ? "Pausar sessão" : isPaused ? "Retomar sessão" : "Iniciar sessão");
+      const label = this.engine.status === "running" ? "Reproduzindo" : this.engine.status === "paused" ? "Pausado" : "Pronto";
+      $("engineStatus").lastElementChild.textContent = label;
+    }
+
+    toast(message) {
+      const toast = $("toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      clearTimeout(this.toastTimer);
+      this.toastTimer = setTimeout(() => toast.classList.remove("show"), 2500);
+    }
+  }
+
+  new AppController();
+})();
