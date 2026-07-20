@@ -1,0 +1,12 @@
+{
+  "name": "Binaural Flow · Validação técnica",
+  "short_name": "Binaural Engine",
+  "description": "Interface temporária para validação do motor binaural e ciclo de vida.",
+  "lang": "pt-BR",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0e14",
+  "theme_color": "#10131a"
+}

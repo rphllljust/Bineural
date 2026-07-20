@@ -1,0 +1,20 @@
+{
+  "name": "binaural-flow-engine-dev",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "description": "Motor binaural TypeScript e interface técnica das Etapas 02 e 03.",
+  "scripts": {
+    "clean": "node scripts/clean.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "node scripts/lint.mjs",
+    "test:compile": "node scripts/clean.mjs .test-dist && tsc -p tsconfig.test.json",
+    "test": "npm run test:compile && node --test .test-dist/tests/*.test.js",
+    "coverage": "npm run test:compile && node --experimental-test-coverage --test .test-dist/tests/*.test.js",
+    "build": "node scripts/build.mjs",
+    "preview": "node scripts/preview.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
