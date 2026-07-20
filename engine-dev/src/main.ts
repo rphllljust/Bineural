@@ -1,167 +1,59 @@
 import { disposeAudioEngine, getAudioEngine } from "./audio/index.js";
-import type { AudioEngineEvent } from "./audio/types.js";
+import type { AudioEngineEvent, AudioEngineSnapshot } from "./audio/types.js";
 import { BrowserLifecycleCoordinator } from "./lifecycle/index.js";
 import type { LifecycleSnapshot, WindowLike } from "./lifecycle/types.js";
+
+type Channel = "left" | "right";
+type WaveStateId = "near" | "delta" | "theta" | "alpha" | "beta" | "gamma";
+interface WaveStateDefinition { readonly id: WaveStateId; readonly min: number; readonly max: number; readonly label: string; readonly range: string; readonly title: string; }
+
+const FREQUENCY_MIN = 80;
+const FREQUENCY_MAX = 500;
+const DEFAULT_LEFT = 200;
+const DEFAULT_RIGHT = 206;
+const DEFAULT_DURATION_SECONDS = 1500;
+const DEFAULT_VOLUME = 0.08;
+const WAVE_STATES: readonly WaveStateDefinition[] = [
+  { id:"near", min:0, max:.5, label:"Near Mono", range:"0–0.5 Hz", title:"Near Mono Balance" },
+  { id:"delta", min:.5, max:4, label:"Delta State", range:"0.5–4 Hz", title:"Delta Sleep" },
+  { id:"theta", min:4, max:8, label:"Theta State", range:"4–8 Hz", title:"Theta Meditation" },
+  { id:"alpha", min:8, max:12, label:"Alpha State", range:"8–12 Hz", title:"Alpha Focus" },
+  { id:"beta", min:12, max:30, label:"Beta State", range:"12–30 Hz", title:"Beta Activation" },
+  { id:"gamma", min:30, max:Number.POSITIVE_INFINITY, label:"Gamma State", range:"30+ Hz", title:"Gamma Intensity" }
+];
 
 const engine = getAudioEngine();
 const lifecycle = new BrowserLifecycleCoordinator(engine, window as unknown as WindowLike);
 const eventLog: string[] = [];
+let leftFrequency = DEFAULT_LEFT;
+let rightFrequency = DEFAULT_RIGHT;
+let animationFrame = 0;
+let wavePhase = 0;
+let toastTimer = 0;
 
-function element<T extends HTMLElement>(id: string): T {
-  const result = document.getElementById(id);
-  if (result === null) throw new Error(`Elemento obrigatório ausente: ${id}`);
-  return result as T;
-}
+function element<T extends HTMLElement>(id:string):T { const value=document.getElementById(id); if(value===null) throw new Error(`Elemento obrigatório ausente: ${id}`); return value as T; }
+const clamp=(value:number,min:number,max:number):number=>Math.min(max,Math.max(min,value));
+function formatTime(seconds:number|undefined):string { if(seconds===undefined||!Number.isFinite(seconds)) return "—"; const safe=Math.max(0,Math.ceil(seconds)); return `${String(Math.floor(safe/60)).padStart(2,"0")}:${String(safe%60).padStart(2,"0")}`; }
+const currentDifference=():number=>rightFrequency-leftFrequency;
+function resolveWaveState(difference:number):WaveStateDefinition { const absolute=Math.abs(difference); return WAVE_STATES.find((item)=>absolute>=item.min&&absolute<item.max)??WAVE_STATES[WAVE_STATES.length-1]!; }
+function notify(message:string):void { const toast=element<HTMLDivElement>("toast"); toast.textContent=message; toast.classList.add("show"); window.clearTimeout(toastTimer); toastTimer=window.setTimeout(()=>toast.classList.remove("show"),2600); }
+function appendLog(message:string):void { eventLog.unshift(message); if(eventLog.length>60) eventLog.length=60; const list=element<HTMLOListElement>("eventLog"); list.replaceChildren(...eventLog.map((entry)=>{const item=document.createElement("li");const time=document.createElement("time");time.textContent=new Date().toLocaleTimeString("pt-BR");item.append(time,entry);return item;})); }
+function describeEvent(event:AudioEngineEvent):string { switch(event.type){case"statechange":return`estado ${event.previous} → ${event.current}`;case"configurationchange":return`configuração L=${event.configuration.leftHz} Hz R=${event.configuration.rightHz} Hz`;case"progress":return`progresso ${event.elapsedSeconds.toFixed(1)} s`;case"error":return`erro ${event.error.code}: ${event.error.toFriendlyMessage()}`;case"pause":return`pausa (${event.reason})`;case"resume":return`retomada (${event.reason})`;default:return event.type;} }
 
-function numberValue(id: string): number {
-  return Number(element<HTMLInputElement>(id).value);
-}
+function updateKnob(channel:Channel,frequency:number):void { const normalized=(frequency-FREQUENCY_MIN)/(FREQUENCY_MAX-FREQUENCY_MIN); const rotation=-135+normalized*270; const knob=element<HTMLDivElement>(channel==="left"?"leftKnob":"rightKnob"); const output=element<HTMLOutputElement>(channel==="left"?"leftOutput":"rightOutput"); const value=element<HTMLElement>(channel==="left"?"leftKnobValue":"rightKnobValue"); knob.style.setProperty("--angle",`${rotation}deg`);knob.style.setProperty("--progress",`${normalized*270}deg`);knob.setAttribute("aria-valuenow",String(frequency));knob.setAttribute("aria-valuetext",`${frequency} hertz`);output.value=`${frequency} Hz`;value.textContent=String(frequency); }
+function updateWaveIdentity():void { const difference=currentDifference();const definition=resolveWaveState(difference);document.body.dataset.waveState=definition.id;element("differenceValue").textContent=`${difference>=0?"+":""}${difference.toFixed(2)}`;element("stateLabel").textContent=definition.label;element("stateRange").textContent=definition.range;element("sessionTitle").textContent=definition.title; }
+function syncFrequenciesFromSnapshot(snapshot:AudioEngineSnapshot):void { const configuration=snapshot.configuration;if(configuration===undefined)return;leftFrequency=Math.round(configuration.leftHz);rightFrequency=Math.round(configuration.rightHz); }
+function setFrequency(channel:Channel,value:number,updateEngine=true):void { const normalized=Math.round(clamp(value,FREQUENCY_MIN,FREQUENCY_MAX));if(channel==="left")leftFrequency=normalized;else rightFrequency=normalized;updateKnob(channel,normalized);updateWaveIdentity();if(updateEngine&&engine.getState().configuration!==undefined){try{engine.setChannelFrequency(channel,normalized);}catch(error){notify(error instanceof Error?error.message:"Frequência inválida");}} }
 
-function appendLog(message: string): void {
-  eventLog.unshift(message);
-  if (eventLog.length > 80) eventLog.length = 80;
-  const list = element<HTMLOListElement>("eventLog");
-  list.replaceChildren(
-    ...eventLog.map((entry) => {
-      const item = document.createElement("li");
-      const time = document.createElement("time");
-      time.textContent = new Date().toLocaleTimeString("pt-BR");
-      item.append(time, entry);
-      return item;
-    })
-  );
-}
+function render(snapshot:LifecycleSnapshot):void { const current=snapshot.engine;syncFrequenciesFromSnapshot(current);updateKnob("left",leftFrequency);updateKnob("right",rightFrequency);updateWaveIdentity();const status=element<HTMLDivElement>("overallStatus");const statusText=status.querySelector("b");if(statusText!==null)statusText.textContent=current.state==="running"?"Reproduzindo":current.state==="paused"?"Pausado":current.state==="interaction-required"?"Toque necessário":"Pronto";status.dataset.state=current.state;element("engineState").textContent=current.state;element("contextState").textContent=current.contextState;element("pauseReason").textContent=current.pauseReason;element("interactionRequired").textContent=current.requiresUserGesture?"sim":"não";element("wakeLockStatus").textContent=snapshot.wakeLock;element("pwaStatus").textContent=snapshot.pwaUpdate;element("onlineStatus").textContent=snapshot.online;element("visibilityStatus").textContent=snapshot.visibility;element("elapsed").textContent=`${current.elapsedSeconds.toFixed(2)} s`;element("graphActive").textContent=current.graphActive?"sim":"não";element("recoveryMessage").textContent=snapshot.recoveryMessage;element("timerOutput").textContent=formatTime(current.remainingSeconds??(current.state==="idle"||current.state==="uninitialized"?Number(element<HTMLSelectElement>("duration").value):undefined));const playIcon=element("playIcon");playIcon.textContent=current.state==="running"?"Ⅱ":"▶";element<HTMLButtonElement>("playButton").setAttribute("aria-label",current.state==="running"?"Pausar":current.state==="paused"?"Retomar":"Iniciar"); }
 
-function describeEvent(event: AudioEngineEvent): string {
-  switch (event.type) {
-    case "statechange":
-      return `estado ${event.previous} → ${event.current}`;
-    case "configurationchange":
-      return `configuração L=${event.configuration.leftHz} Hz R=${event.configuration.rightHz} Hz`;
-    case "progress":
-      return `progresso ${event.elapsedSeconds.toFixed(2)} s`;
-    case "error":
-      return `erro ${event.error.code}: ${event.error.toFriendlyMessage()}`;
-    case "pause":
-      return `pausa (${event.reason})`;
-    case "resume":
-      return `retomada (${event.reason})`;
-    default:
-      return event.type;
-  }
-}
+async function startSession():Promise<void> { await engine.start({mode:"direct",leftHz:leftFrequency,rightHz:rightFrequency,durationSeconds:Number(element<HTMLSelectElement>("duration").value),masterVolume:Number(element<HTMLInputElement>("volume").value),leftVolume:.5,rightVolume:.5,fadeInSeconds:1.2,fadeOutSeconds:.35,transitionSeconds:.09,safety:{maxMasterVolume:.3}}); }
+async function togglePlayback():Promise<void> { const state=engine.getState().state;try{if(state==="running")await engine.pause();else if(state==="paused")await engine.resume();else if(state==="interaction-required"||state==="interrupted"||state==="error")await lifecycle.recoverFromUserGesture();else await startSession();}catch(error){const message=error instanceof Error?error.message:"Não foi possível controlar a sessão";appendLog(message);notify(message);}render(lifecycle.getState()); }
 
-function render(snapshot: LifecycleSnapshot): void {
-  const engineSnapshot = snapshot.engine;
-  const configuration = engineSnapshot.configuration;
-  element("overallStatus").textContent = engineSnapshot.state;
-  element("engineState").textContent = engineSnapshot.state;
-  element("contextState").textContent = engineSnapshot.contextState;
-  element("desiredPlayback").textContent = engineSnapshot.desiredPlayback ? "sim" : "não";
-  element("pauseReason").textContent = engineSnapshot.pauseReason;
-  element("interactionRequired").textContent = engineSnapshot.requiresUserGesture ? "sim" : "não";
-  element("wakeLockStatus").textContent = snapshot.wakeLock;
-  element("pwaStatus").textContent = snapshot.pwaUpdate;
-  element("onlineStatus").textContent = snapshot.online;
-  element("visibilityStatus").textContent = snapshot.visibility;
-  element("focusStatus").textContent = snapshot.focused ? "sim" : "não";
-  element("elapsed").textContent = `${engineSnapshot.elapsedSeconds.toFixed(2)} s`;
-  element("remaining").textContent =
-    engineSnapshot.remainingSeconds === undefined ? "—" : `${engineSnapshot.remainingSeconds.toFixed(2)} s`;
-  element("leftFrequency").textContent = configuration === undefined ? "—" : `${configuration.leftHz} Hz`;
-  element("rightFrequency").textContent = configuration === undefined ? "—" : `${configuration.rightHz} Hz`;
-  element("graphActive").textContent = engineSnapshot.graphActive ? "sim" : "não";
-  element("recoveryMessage").textContent = snapshot.recoveryMessage;
-}
+function installKnobInteraction(channel:Channel):void { const knob=element<HTMLDivElement>(channel==="left"?"leftKnob":"rightKnob");let activePointer:number|undefined;let startY=0;let startValue=0;knob.addEventListener("pointerdown",(event)=>{activePointer=event.pointerId;startY=event.clientY;startValue=channel==="left"?leftFrequency:rightFrequency;knob.setPointerCapture(event.pointerId);});knob.addEventListener("pointermove",(event)=>{if(activePointer!==event.pointerId)return;setFrequency(channel,startValue+(startY-event.clientY));});const end=(event:PointerEvent):void=>{if(activePointer!==event.pointerId)return;activePointer=undefined;if(knob.hasPointerCapture(event.pointerId))knob.releasePointerCapture(event.pointerId);};knob.addEventListener("pointerup",end);knob.addEventListener("pointercancel",end);knob.addEventListener("wheel",(event)=>{event.preventDefault();setFrequency(channel,(channel==="left"?leftFrequency:rightFrequency)+(event.deltaY<0?1:-1));},{passive:false});knob.addEventListener("keydown",(event)=>{const current=channel==="left"?leftFrequency:rightFrequency;if(event.key==="ArrowUp"||event.key==="ArrowRight"){event.preventDefault();setFrequency(channel,current+1);}if(event.key==="ArrowDown"||event.key==="ArrowLeft"){event.preventDefault();setFrequency(channel,current-1);}if(event.key==="PageUp"){event.preventDefault();setFrequency(channel,current+10);}if(event.key==="PageDown"){event.preventDefault();setFrequency(channel,current-10);}if(event.key==="Home"){event.preventDefault();setFrequency(channel,FREQUENCY_MIN);}if(event.key==="End"){event.preventDefault();setFrequency(channel,FREQUENCY_MAX);}}); }
 
-engine.subscribe((event) => {
-  if (event.type !== "progress" || Math.round(event.elapsedSeconds) % 5 === 0) appendLog(describeEvent(event));
-  render(lifecycle.getState());
-});
+function installWaveCanvas():void { const canvas=element<HTMLCanvasElement>("waveCanvas");const context=canvas.getContext("2d",{alpha:true});if(context===null)return;const host=canvas.parentElement;if(host===null)return;let width=1,height=1,ratio=1;const resize=():void=>{const bounds=host.getBoundingClientRect();width=Math.max(1,bounds.width);height=Math.max(1,bounds.height);ratio=Math.min(window.devicePixelRatio||1,2);canvas.width=Math.round(width*ratio);canvas.height=Math.round(height*ratio);context.setTransform(ratio,0,0,ratio,0,0);};new ResizeObserver(resize).observe(host);resize();const frame=():void=>{context.clearRect(0,0,width,height);const running=engine.getState().state==="running";wavePhase+=running?.045:.012;const centerX=width/2,centerY=height/2,radius=Math.min(width,height)*.35;const accent=getComputedStyle(document.body).getPropertyValue("--accent").trim()||"#8a2be2";const aura=context.createRadialGradient(centerX,centerY,radius*.08,centerX,centerY,radius*1.15);aura.addColorStop(0,`${accent}33`);aura.addColorStop(.52,`${accent}12`);aura.addColorStop(1,`${accent}00`);context.fillStyle=aura;context.beginPath();context.arc(centerX,centerY,radius*1.15,0,Math.PI*2);context.fill();for(let ring=0;ring<10;ring+=1){context.beginPath();context.ellipse(centerX,centerY,radius*(.5+ring*.06),radius*(.12+ring*.012),wavePhase*.12+ring*.13,0,Math.PI*2);context.strokeStyle=`${accent}${(16+ring*3).toString(16).padStart(2,"0")}`;context.lineWidth=.8;context.stroke();}const layers=running?12:8;for(let layer=0;layer<layers;layer+=1){context.beginPath();const start=centerX-radius*1.2,end=centerX+radius*1.2;for(let x=start;x<=end;x+=(end-start)/220){const normalized=(x-centerX)/radius;const envelope=Math.pow(Math.max(0,1-Math.abs(normalized)*.78),1.2);const signal=Math.sin(normalized*13+wavePhase*1.7+layer*.13)*.48+Math.sin(normalized*29-wavePhase+layer*.08)*.25+Math.sin(normalized*47+wavePhase*2.1)*.14;const y=centerY+signal*radius*(running?.23:.14)*envelope+(layer-layers/2)*1.8;if(x===start)context.moveTo(x,y);else context.lineTo(x,y);}const gradient=context.createLinearGradient(start,0,end,0);gradient.addColorStop(0,`${accent}00`);gradient.addColorStop(.2,`${accent}bb`);gradient.addColorStop(.5,"#ffffffdd");gradient.addColorStop(.8,`${accent}bb`);gradient.addColorStop(1,`${accent}00`);context.strokeStyle=gradient;context.globalAlpha=.12+layer/layers*.08;context.lineWidth=layer===Math.floor(layers/2)?1.8:.8;context.stroke();}context.globalAlpha=1;animationFrame=window.requestAnimationFrame(frame);};frame(); }
 
-lifecycle.subscribe(render);
-lifecycle.attach();
+function bindInterface():void { installKnobInteraction("left");installKnobInteraction("right");installWaveCanvas();document.querySelectorAll<HTMLButtonElement>("[data-channel][data-delta]").forEach((button)=>button.addEventListener("click",()=>{const channel=button.dataset.channel as Channel;const delta=Number(button.dataset.delta);setFrequency(channel,(channel==="left"?leftFrequency:rightFrequency)+delta);}));element<HTMLButtonElement>("playButton").addEventListener("click",()=>void togglePlayback());element<HTMLButtonElement>("stopButton").addEventListener("click",async()=>{try{await engine.stop();}catch(error){notify(error instanceof Error?error.message:"Falha ao parar");}render(lifecycle.getState());});element<HTMLButtonElement>("resetButton").addEventListener("click",async()=>{try{await engine.stop();}catch{}setFrequency("left",DEFAULT_LEFT,false);setFrequency("right",DEFAULT_RIGHT,false);element<HTMLInputElement>("volume").value=String(DEFAULT_VOLUME);element<HTMLOutputElement>("volumeOutput").value="27%";element<HTMLSelectElement>("duration").value=String(DEFAULT_DURATION_SECONDS);render(lifecycle.getState());notify("Configuração restaurada.");});element<HTMLInputElement>("volume").addEventListener("input",()=>{const value=Number(element<HTMLInputElement>("volume").value);element<HTMLOutputElement>("volumeOutput").value=`${Math.round(value/.3*100)}%`;if(engine.getState().configuration!==undefined){try{engine.setMasterVolume(value);}catch(error){notify(error instanceof Error?error.message:"Volume inválido");}}});element<HTMLSelectElement>("duration").addEventListener("change",()=>render(lifecycle.getState()));const drawer=element<HTMLElement>("diagnosticsDrawer");const toggle=element<HTMLButtonElement>("diagnosticsToggle");const setDrawer=(open:boolean):void=>{drawer.hidden=!open;toggle.setAttribute("aria-expanded",String(open));};toggle.addEventListener("click",()=>setDrawer(drawer.hidden));element<HTMLButtonElement>("diagnosticsClose").addEventListener("click",()=>setDrawer(false));element<HTMLButtonElement>("recoverButton").addEventListener("click",async()=>{try{await lifecycle.recoverFromUserGesture();}catch(error){notify(error instanceof Error?error.message:"Falha na recuperação");}render(lifecycle.getState());});element<HTMLButtonElement>("checkUpdateButton").addEventListener("click",async()=>{await lifecycle.checkPwaUpdate();render(lifecycle.getState());});element<HTMLButtonElement>("applyUpdateButton").addEventListener("click",()=>{lifecycle.applyPwaUpdate();render(lifecycle.getState());}); }
 
-element<HTMLButtonElement>("initializeButton").addEventListener("click", async () => {
-  try {
-    await engine.initialize();
-    appendLog("AudioContext criado após gesto do usuário");
-  } catch (error) {
-    appendLog(error instanceof Error ? error.message : "Falha desconhecida na inicialização");
-  }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("startButton").addEventListener("click", async () => {
-  try {
-    await engine.start({
-      mode: "carrier-offset",
-      carrierHz: numberValue("carrier"),
-      binauralHz: numberValue("binaural"),
-      durationSeconds: numberValue("duration"),
-      masterVolume: numberValue("volume"),
-      leftVolume: 0.5,
-      rightVolume: 0.5,
-      fadeInSeconds: 1.2,
-      fadeOutSeconds: 0.35,
-      transitionSeconds: 0.08,
-      safety: { maxMasterVolume: 0.3 }
-    });
-  } catch (error) {
-    appendLog(error instanceof Error ? error.message : "Falha desconhecida ao iniciar");
-  }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("pauseButton").addEventListener("click", async () => {
-  try { await engine.pause(); } catch (error) { appendLog(error instanceof Error ? error.message : "Falha ao pausar"); }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("resumeButton").addEventListener("click", async () => {
-  try { await engine.resume(); } catch (error) { appendLog(error instanceof Error ? error.message : "Falha ao retomar"); }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("stopButton").addEventListener("click", async () => {
-  try { await engine.stop(); } catch (error) { appendLog(error instanceof Error ? error.message : "Falha ao parar"); }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("recoverButton").addEventListener("click", async () => {
-  await lifecycle.recoverFromUserGesture();
-  render(lifecycle.getState());
-});
-
-element<HTMLInputElement>("volume").addEventListener("input", () => {
-  const value = numberValue("volume");
-  element<HTMLOutputElement>("volumeOutput").value = value.toFixed(2);
-  if (engine.getState().configuration !== undefined) {
-    try { engine.setMasterVolume(value); } catch (error) { appendLog(error instanceof Error ? error.message : "Volume inválido"); }
-  }
-});
-
-element<HTMLButtonElement>("applyCarrierButton").addEventListener("click", () => {
-  try { engine.setCarrierFrequency(numberValue("liveCarrier")); } catch (error) { appendLog(error instanceof Error ? error.message : "Portadora inválida"); }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("applyBinauralButton").addEventListener("click", () => {
-  try { engine.setBinauralFrequency(numberValue("liveBinaural")); } catch (error) { appendLog(error instanceof Error ? error.message : "Diferença inválida"); }
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("checkUpdateButton").addEventListener("click", async () => {
-  await lifecycle.checkPwaUpdate();
-  render(lifecycle.getState());
-});
-
-element<HTMLButtonElement>("applyUpdateButton").addEventListener("click", () => {
-  lifecycle.applyPwaUpdate();
-  render(lifecycle.getState());
-});
-
-window.addEventListener("beforeunload", () => {
-  void lifecycle.dispose();
-  void disposeAudioEngine();
-});
+engine.subscribe((event)=>{if(event.type!=="progress"||Math.round(event.elapsedSeconds)%5===0)appendLog(describeEvent(event));render(lifecycle.getState());});lifecycle.subscribe(render);lifecycle.attach();bindInterface();setFrequency("left",DEFAULT_LEFT,false);setFrequency("right",DEFAULT_RIGHT,false);render(lifecycle.getState());window.addEventListener("beforeunload",()=>{window.cancelAnimationFrame(animationFrame);void lifecycle.dispose();void disposeAudioEngine();});
