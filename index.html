@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#05070d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Binaural Flow</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="ambient"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+<div class="app">
+<aside class="rail"><div class="logo">🎧</div><nav><button class="nav active">◉</button><button class="nav">◇</button><button class="nav">⚙</button></nav><div class="dot">●</div></aside>
+<main class="main">
+<header class="top"><div><strong>Binaural Flow</strong><span>Experiência sonora imersiva</span></div><button class="full" id="full">⛶</button></header>
+<div class="layout">
+<section class="stage"><div class="inside">
+<div class="eyebrow">Sessão atual</div><h1 class="title" id="title">Foco profundo</h1><p class="subtitle" id="subtitle">Beta 18 Hz · ativação moderada</p>
+<div class="visual"><div class="halo"></div><div class="rings"><i></i><i></i><i></i><i></i></div><div class="disc" id="disc"><div class="core"><div class="time" id="timer">25:00</div><div class="time-label" id="label">pronto para iniciar</div></div></div></div>
+<div class="freqs"><div class="freq">Esquerdo <strong id="left">200 Hz</strong></div><div class="freq">Diferença <strong id="beat">18 Hz</strong></div><div class="freq">Direito <strong id="right">218 Hz</strong></div></div>
+<div class="controls"><button class="ctrl" id="stop">■</button><button class="ctrl main" id="play">▶</button><button class="ctrl" id="reset">↻</button></div>
+<div class="volume"><span>🔈</span><input id="volume" type="range" min="0" max=".30" step=".01" value=".10"><span id="vol">33%</span></div><button class="panic" id="panic">Parada imediata</button>
+<section class="presets"><h2>Escolha uma atmosfera</h2><div class="grid" id="presets"></div></section>
+</div></section>
+<aside class="side">
+<section class="card"><h2>Leitura da sessão</h2><div class="meta"><div class="row"><span>Duração</span><strong id="duration">25 min</strong></div><div class="row"><span>Portadora</span><strong id="carrierMeta">200 Hz</strong></div><div class="row"><span>Estado</span><strong id="status">Pronto</strong></div></div></section>
+<section class="card"><h2>Canais</h2><div class="channels"><div class="channel"><span>ESQUERDO</span><strong id="leftSide">200 Hz</strong></div><div class="channel"><span>DIREITO</span><strong id="rightSide">218 Hz</strong></div></div></section>
+<section class="card"><h2>Personalizar</h2><div class="fields"><div class="field"><label>Portadora (Hz)</label><input id="carrierInput" type="number" min="80" max="500" value="200"></div><div class="field"><label>Diferença (Hz)</label><input id="beatInput" type="number" min=".5" max="50" step=".5" value="18"></div><div class="field"><label>Duração (min)</label><input id="durationInput" type="number" min="1" max="180" value="25"></div><button class="apply" id="apply">Aplicar configuração</button></div></section>
+<section class="card"><h2>Uso seguro</h2><ul class="safe"><li>Use fones estéreo e volume baixo.</li><li>Interrompa em caso de desconforto.</li><li>Não use dirigindo ou operando máquinas.</li><li>Não substitui tratamento médico.</li></ul></section>
+</aside>
+</div></main></div>
+<nav class="mobile"><button class="active">◉</button><button>◇</button><button>⚙</button><button id="fullMobile">⛶</button></nav><div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body></html>
