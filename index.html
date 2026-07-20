@@ -1,41 +1,210 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#05070d">
-<meta name="description" content="Gerador binaural imersivo com áudio estéreo processado localmente.">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Binaural Flow">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>Binaural Flow</title>
-<link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#05070d">
+  <meta name="description" content="Gerador binaural premium com controle independente dos canais esquerdo e direito.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Binaural Flow">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <title>Binaural Flow</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-<div class="ambient" aria-hidden="true"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
-<div class="app">
-<aside class="rail" aria-label="Navegação principal"><div class="logo" aria-hidden="true">🎧</div><nav><button class="nav active" aria-label="Player">◉</button><button class="nav" aria-label="Biblioteca">◇</button><button class="nav" aria-label="Ajustes">⚙</button></nav><div class="dot" title="Processamento local">●</div></aside>
-<main class="main">
-<header class="top"><div><strong>Binaural Flow</strong><span>Experiência sonora imersiva</span></div><button class="full" id="full" aria-label="Alternar tela cheia">⛶</button></header>
-<div class="layout">
-<section class="stage"><div class="inside">
-<div class="eyebrow">Sessão atual</div><h1 class="title" id="title">Foco profundo</h1><p class="subtitle" id="subtitle">Beta 18 Hz · ativação moderada</p>
-<div class="visual"><div class="halo"></div><div class="rings" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="disc" id="disc"><div class="core"><div class="time" id="timer">25:00</div><div class="time-label" id="label">pronto para iniciar</div></div></div></div>
-<div class="freqs"><div class="freq">Esquerdo <strong id="left">200 Hz</strong></div><div class="freq">Diferença <strong id="beat">18 Hz</strong></div><div class="freq">Direito <strong id="right">218 Hz</strong></div></div>
-<div class="controls"><button class="ctrl" id="stop" aria-label="Parar sessão">■</button><button class="ctrl main" id="play" aria-label="Iniciar ou pausar sessão">▶</button><button class="ctrl" id="reset" aria-label="Reiniciar sessão">↻</button></div>
-<div class="volume"><span aria-hidden="true">🔈</span><input id="volume" type="range" min="0" max=".30" step=".01" value=".10" aria-label="Volume"><span id="vol">33%</span></div><button class="panic" id="panic">Parada imediata</button>
-<section class="presets"><h2>Escolha uma atmosfera</h2><div class="grid" id="presets"></div></section>
-</div></section>
-<aside class="side">
-<section class="card"><h2>Leitura da sessão</h2><div class="meta"><div class="row"><span>Duração</span><strong id="duration">25 min</strong></div><div class="row"><span>Portadora</span><strong id="carrierMeta">200 Hz</strong></div><div class="row"><span>Estado</span><strong id="status">Pronto</strong></div></div></section>
-<section class="card"><h2>Canais</h2><div class="channels"><div class="channel"><span>ESQUERDO</span><strong id="leftSide">200 Hz</strong></div><div class="channel"><span>DIREITO</span><strong id="rightSide">218 Hz</strong></div></div></section>
-<section class="card"><h2>Personalizar</h2><div class="fields"><div class="field"><label for="carrierInput">Portadora (Hz)</label><input id="carrierInput" type="number" min="80" max="500" value="200"></div><div class="field"><label for="beatInput">Diferença (Hz)</label><input id="beatInput" type="number" min=".5" max="50" step=".5" value="18"></div><div class="field"><label for="durationInput">Duração (min)</label><input id="durationInput" type="number" min="1" max="180" value="25"></div><button class="apply" id="apply">Aplicar configuração</button></div></section>
-<section class="card"><h2>Uso seguro</h2><ul class="safe"><li>Use fones estéreo e volume baixo.</li><li>Interrompa em caso de desconforto.</li><li>Não use dirigindo ou operando máquinas.</li><li>Não substitui tratamento médico.</li></ul></section>
-</aside>
-</div></main></div>
-<nav class="mobile" aria-label="Navegação móvel"><button class="active" aria-label="Player">◉</button><button aria-label="Biblioteca">◇</button><button aria-label="Ajustes">⚙</button><button id="fullMobile" aria-label="Tela cheia">⛶</button></nav><div class="toast" id="toast" role="status" aria-live="polite"></div>
-<script src="app.js"></script>
-<script>if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost")){addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}))}</script>
-</body></html>
+<body data-state="theta">
+  <div class="aurora" aria-hidden="true">
+    <span class="aurora__orb aurora__orb--one"></span>
+    <span class="aurora__orb aurora__orb--two"></span>
+    <span class="aurora__orb aurora__orb--three"></span>
+    <span class="aurora__noise"></span>
+  </div>
+
+  <main class="app-shell">
+    <section class="glass-panel" aria-labelledby="app-title">
+      <header class="app-header">
+        <div class="brand-block">
+          <div class="brand-mark" aria-hidden="true">
+            <span></span><span></span><span></span>
+          </div>
+          <div>
+            <p class="overline">PROFESSIONAL BINAURAL ENGINE</p>
+            <h1 id="app-title">Binaural Flow</h1>
+          </div>
+        </div>
+        <div class="engine-status" id="engineStatus" aria-live="polite">
+          <span class="engine-status__dot"></span>
+          <span>Pronto</span>
+        </div>
+      </header>
+
+      <section class="hero-card" aria-label="Visualização binaural">
+        <canvas id="waveCanvas" class="wave-canvas" aria-hidden="true"></canvas>
+        <div class="hero-card__grid" aria-hidden="true"></div>
+        <div class="hero-card__content">
+          <p class="hero-card__label">DIFERENÇA BINAURAL · R − L</p>
+          <div class="difference-display">
+            <span id="differenceValue">+6.00</span>
+            <small>Hz</small>
+          </div>
+          <div class="state-badge" id="stateBadge">
+            <span class="state-badge__pulse"></span>
+            <strong id="stateLabel">Theta State</strong>
+            <small id="stateRange">4–8 Hz</small>
+          </div>
+        </div>
+      </section>
+
+      <section class="knob-layout" aria-label="Controles de frequência por canal">
+        <article class="knob-card">
+          <div class="knob-card__head">
+            <div>
+              <span class="channel-tag">L</span>
+              <p>Ouvido esquerdo</p>
+            </div>
+            <span class="channel-output" id="leftOutput">200 Hz</span>
+          </div>
+
+          <div
+            class="rotary-knob"
+            id="leftKnob"
+            role="slider"
+            tabindex="0"
+            aria-label="Frequência do ouvido esquerdo"
+            aria-valuemin="80"
+            aria-valuemax="500"
+            aria-valuenow="200"
+            aria-valuetext="200 hertz"
+          >
+            <div class="rotary-knob__track" aria-hidden="true"></div>
+            <div class="rotary-knob__body" aria-hidden="true">
+              <span class="rotary-knob__indicator"></span>
+              <span class="rotary-knob__shine"></span>
+            </div>
+            <div class="rotary-knob__readout">
+              <strong id="leftKnobValue">200</strong>
+              <span>Hz</span>
+            </div>
+          </div>
+
+          <div class="fine-controls" aria-label="Ajuste fino do canal esquerdo">
+            <button type="button" data-adjust="left" data-delta="-1" aria-label="Diminuir 1 hertz no canal esquerdo">−</button>
+            <span>80–500 Hz</span>
+            <button type="button" data-adjust="left" data-delta="1" aria-label="Aumentar 1 hertz no canal esquerdo">+</button>
+          </div>
+        </article>
+
+        <article class="knob-card">
+          <div class="knob-card__head">
+            <div>
+              <span class="channel-tag">R</span>
+              <p>Ouvido direito</p>
+            </div>
+            <span class="channel-output" id="rightOutput">206 Hz</span>
+          </div>
+
+          <div
+            class="rotary-knob"
+            id="rightKnob"
+            role="slider"
+            tabindex="0"
+            aria-label="Frequência do ouvido direito"
+            aria-valuemin="80"
+            aria-valuemax="500"
+            aria-valuenow="206"
+            aria-valuetext="206 hertz"
+          >
+            <div class="rotary-knob__track" aria-hidden="true"></div>
+            <div class="rotary-knob__body" aria-hidden="true">
+              <span class="rotary-knob__indicator"></span>
+              <span class="rotary-knob__shine"></span>
+            </div>
+            <div class="rotary-knob__readout">
+              <strong id="rightKnobValue">206</strong>
+              <span>Hz</span>
+            </div>
+          </div>
+
+          <div class="fine-controls" aria-label="Ajuste fino do canal direito">
+            <button type="button" data-adjust="right" data-delta="-1" aria-label="Diminuir 1 hertz no canal direito">−</button>
+            <span>80–500 Hz</span>
+            <button type="button" data-adjust="right" data-delta="1" aria-label="Aumentar 1 hertz no canal direito">+</button>
+          </div>
+        </article>
+      </section>
+
+      <section class="preset-strip" aria-label="Presets rápidos">
+        <button type="button" class="preset-button" data-preset="delta">
+          <span class="preset-button__icon">◌</span>
+          <span><strong>Delta</strong><small>2 Hz · Sono</small></span>
+        </button>
+        <button type="button" class="preset-button active" data-preset="theta">
+          <span class="preset-button__icon">✦</span>
+          <span><strong>Theta</strong><small>6 Hz · Meditação</small></span>
+        </button>
+        <button type="button" class="preset-button" data-preset="alpha">
+          <span class="preset-button__icon">⌁</span>
+          <span><strong>Alpha</strong><small>10 Hz · Foco</small></span>
+        </button>
+      </section>
+
+      <section class="control-deck" aria-label="Controles da sessão">
+        <div class="control-deck__item">
+          <label for="volume">Volume seguro</label>
+          <div class="slider-row">
+            <span aria-hidden="true">◔</span>
+            <input id="volume" type="range" min="0" max="0.3" step="0.01" value="0.10">
+            <output id="volumeOutput" for="volume">33%</output>
+          </div>
+        </div>
+
+        <div class="transport">
+          <button type="button" class="transport__secondary" id="stopButton" aria-label="Parar sessão">■</button>
+          <button type="button" class="transport__primary" id="playButton" aria-label="Iniciar sessão">
+            <span id="playIcon">▶</span>
+          </button>
+          <button type="button" class="transport__secondary" id="resetButton" aria-label="Restaurar valores padrão">↺</button>
+        </div>
+
+        <div class="control-deck__item control-deck__item--timer">
+          <label for="duration">Duração</label>
+          <select id="duration">
+            <option value="900">15 min</option>
+            <option value="1500" selected>25 min</option>
+            <option value="2700">45 min</option>
+            <option value="3600">60 min</option>
+          </select>
+          <strong id="timerOutput">25:00</strong>
+        </div>
+      </section>
+
+      <section class="metrics-grid" aria-label="Leituras técnicas">
+        <article class="metric-card">
+          <div class="metric-card__head"><span>FREQUENCY MATRIX</span><strong id="matrixState">THETA</strong></div>
+          <canvas id="matrixCanvas" width="420" height="100" aria-label="Gráfico das frequências esquerda e direita"></canvas>
+        </article>
+        <article class="metric-card metric-card--compact">
+          <div><span>Separação</span><strong>Estéreo</strong></div>
+          <div><span>Forma</span><strong>Senoidal</strong></div>
+          <div><span>Limiter</span><strong>Ativo</strong></div>
+        </article>
+      </section>
+
+      <footer class="safety-note">
+        <span aria-hidden="true">◉</span>
+        <p>Use fones estéreo e volume baixo. Interrompa em caso de desconforto. Não utilize dirigindo ou operando máquinas.</p>
+      </footer>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) {
+      addEventListener("load", () => navigator.serviceWorker.register("./sw.js").catch(() => {}));
+    }
+  </script>
+</body>
+</html>
