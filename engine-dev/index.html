@@ -3,109 +3,57 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#10131a">
-  <meta name="description" content="Interface técnica de validação do motor binaural.">
+  <meta name="theme-color" content="#05070d">
+  <meta name="description" content="Reprodutor binaural imersivo com controles independentes por canal.">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="manifest" href="./manifest.webmanifest">
-  <title>Binaural Flow · Validação técnica</title>
+  <title>Binaural Flow</title>
   <link rel="stylesheet" href="./styles.css">
 </head>
-<body>
-  <main class="technical-shell">
-    <header class="technical-header">
-      <div>
-        <p class="eyebrow">ETAPAS 02–03 · INTERFACE TEMPORÁRIA</p>
-        <h1>Validação do motor binaural</h1>
-        <p>Esta tela existe apenas para testar o núcleo de áudio e o ciclo de vida.</p>
-      </div>
-      <div class="status-chip" id="overallStatus">Não inicializado</div>
+<body data-wave-state="theta">
+  <div class="ambient" aria-hidden="true"><span class="ambient__orb ambient__orb--a"></span><span class="ambient__orb ambient__orb--b"></span><span class="ambient__orb ambient__orb--c"></span><span class="ambient__noise"></span></div>
+  <main class="app-shell">
+    <header class="app-header">
+      <div class="brand"><div class="brand__mark" aria-hidden="true"><i></i><i></i><i></i></div><div><span>PROFESSIONAL BINAURAL ENGINE</span><strong>Binaural Flow</strong></div></div>
+      <button class="icon-button" id="diagnosticsToggle" type="button" aria-expanded="false" aria-controls="diagnosticsDrawer" aria-label="Abrir diagnóstico">⌁</button>
     </header>
-
-    <section class="warning" aria-label="Avisos de segurança">
-      <strong>Uso seguro</strong>
-      <ul>
-        <li>Utilize fones estéreo e comece em volume baixo.</li>
-        <li>Não utilize dirigindo ou operando máquinas.</li>
-        <li>Interrompa imediatamente em caso de desconforto.</li>
-        <li>O sistema não constitui tratamento médico.</li>
-      </ul>
-    </section>
-
-    <div class="layout">
-      <section class="panel controls-panel">
-        <h2>Configuração de teste</h2>
-        <div class="form-grid">
-          <label>Portadora esquerda (Hz)
-            <input id="carrier" type="number" min="80" max="500" step="1" value="200">
-          </label>
-          <label>Diferença binaural (Hz)
-            <input id="binaural" type="number" min="0.5" max="40" step="0.5" value="6">
-          </label>
-          <label>Duração (segundos)
-            <input id="duration" type="number" min="5" max="14400" step="1" value="120">
-          </label>
-          <label>Volume principal
-            <input id="volume" type="range" min="0" max="0.3" step="0.01" value="0.08">
-            <output id="volumeOutput">0.08</output>
-          </label>
-        </div>
-
-        <div class="button-grid">
-          <button id="initializeButton" type="button">Inicializar</button>
-          <button id="startButton" type="button" class="primary">Iniciar teste</button>
-          <button id="pauseButton" type="button">Pausar</button>
-          <button id="resumeButton" type="button">Retomar</button>
-          <button id="stopButton" type="button" class="danger">Parar</button>
-          <button id="recoverButton" type="button">Recuperar após toque</button>
-        </div>
-
-        <div class="inline-controls">
-          <label>Alterar portadora em execução
-            <input id="liveCarrier" type="number" min="80" max="500" step="1" value="200">
-          </label>
-          <button id="applyCarrierButton" type="button">Aplicar rampa</button>
-          <label>Alterar diferença em execução
-            <input id="liveBinaural" type="number" min="0.5" max="40" step="0.5" value="6">
-          </label>
-          <button id="applyBinauralButton" type="button">Aplicar rampa</button>
-        </div>
-      </section>
-
-      <section class="panel diagnostics-panel">
-        <h2>Diagnóstico em tempo real</h2>
-        <dl class="diagnostics">
-          <div><dt>Estado interno</dt><dd id="engineState">uninitialized</dd></div>
-          <div><dt>AudioContext real</dt><dd id="contextState">absent</dd></div>
-          <div><dt>Sessão pretendida</dt><dd id="desiredPlayback">não</dd></div>
-          <div><dt>Pausa</dt><dd id="pauseReason">none</dd></div>
-          <div><dt>Interação necessária</dt><dd id="interactionRequired">não</dd></div>
-          <div><dt>Wake Lock</dt><dd id="wakeLockStatus">unsupported</dd></div>
-          <div><dt>PWA</dt><dd id="pwaStatus">idle</dd></div>
-          <div><dt>Rede</dt><dd id="onlineStatus">online</dd></div>
-          <div><dt>Visibilidade</dt><dd id="visibilityStatus">visible</dd></div>
-          <div><dt>Foco da janela</dt><dd id="focusStatus">sim</dd></div>
-          <div><dt>Tempo decorrido</dt><dd id="elapsed">0.00 s</dd></div>
-          <div><dt>Tempo restante</dt><dd id="remaining">—</dd></div>
-          <div><dt>Canal esquerdo</dt><dd id="leftFrequency">—</dd></div>
-          <div><dt>Canal direito</dt><dd id="rightFrequency">—</dd></div>
-          <div><dt>Cadeia ativa</dt><dd id="graphActive">não</dd></div>
-        </dl>
-        <p class="recovery-message" id="recoveryMessage" role="status"></p>
-        <div class="pwa-actions">
-          <button id="checkUpdateButton" type="button">Verificar atualização</button>
-          <button id="applyUpdateButton" type="button">Aplicar atualização segura</button>
-        </div>
-      </section>
-    </div>
-
-    <section class="panel log-panel">
-      <div class="log-header">
-        <h2>Eventos locais</h2>
-        <span>Sem envio a servidores</span>
+    <section class="player-card" aria-labelledby="sessionTitle">
+      <div class="player-card__topline"><div><span class="eyebrow">SESSÃO ATUAL</span><h1 id="sessionTitle">Theta Meditation</h1></div><div class="engine-pill" id="overallStatus"><span></span><b>Pronto</b></div></div>
+      <div class="visual-stage">
+        <canvas id="waveCanvas" aria-hidden="true"></canvas><div class="visual-stage__grid" aria-hidden="true"></div>
+        <div class="visual-stage__core"><span>R − L</span><strong id="differenceValue">+6.00</strong><small>Hz</small></div>
+        <div class="state-chip" id="stateChip"><i></i><strong id="stateLabel">Theta State</strong><small id="stateRange">4–8 Hz</small></div>
       </div>
-      <ol id="eventLog" class="event-log"></ol>
+      <section class="channel-grid" aria-label="Frequências dos canais">
+        <article class="channel-card">
+          <div class="channel-card__head"><span><b>L</b> Ouvido esquerdo</span><output id="leftOutput">200 Hz</output></div>
+          <div class="rotary" id="leftKnob" role="slider" tabindex="0" aria-label="Frequência esquerda" aria-valuemin="80" aria-valuemax="500" aria-valuenow="200"><div class="rotary__arc"></div><div class="rotary__body"><i></i></div><div class="rotary__value"><strong id="leftKnobValue">200</strong><small>Hz</small></div></div>
+          <div class="stepper"><button type="button" data-channel="left" data-delta="-1" aria-label="Diminuir frequência esquerda">−</button><span>80–500 Hz</span><button type="button" data-channel="left" data-delta="1" aria-label="Aumentar frequência esquerda">+</button></div>
+        </article>
+        <article class="channel-card">
+          <div class="channel-card__head"><span><b>R</b> Ouvido direito</span><output id="rightOutput">206 Hz</output></div>
+          <div class="rotary" id="rightKnob" role="slider" tabindex="0" aria-label="Frequência direita" aria-valuemin="80" aria-valuemax="500" aria-valuenow="206"><div class="rotary__arc"></div><div class="rotary__body"><i></i></div><div class="rotary__value"><strong id="rightKnobValue">206</strong><small>Hz</small></div></div>
+          <div class="stepper"><button type="button" data-channel="right" data-delta="-1" aria-label="Diminuir frequência direita">−</button><span>80–500 Hz</span><button type="button" data-channel="right" data-delta="1" aria-label="Aumentar frequência direita">+</button></div>
+        </article>
+      </section>
+      <div class="transport-row"><button class="transport-button transport-button--secondary" id="stopButton" type="button" aria-label="Parar">■</button><button class="transport-button transport-button--primary" id="playButton" type="button" aria-label="Iniciar"><span id="playIcon">▶</span></button><button class="transport-button transport-button--secondary" id="resetButton" type="button" aria-label="Restaurar">↺</button></div>
+      <section class="control-deck">
+        <label class="control-field"><span>Volume seguro <output id="volumeOutput">27%</output></span><input id="volume" type="range" min="0" max="0.3" step="0.01" value="0.08"></label>
+        <label class="control-field"><span>Duração</span><select id="duration"><option value="900">15 min</option><option value="1500" selected>25 min</option><option value="2700">45 min</option><option value="3600">60 min</option></select></label>
+        <div class="timer-field"><span>Tempo restante</span><strong id="timerOutput">25:00</strong></div>
+      </section>
+      <section class="safety-note"><span aria-hidden="true">◎</span><p><strong>Use fones estéreo em volume baixo.</strong> Não utilize dirigindo ou operando máquinas. Este sistema não substitui tratamento médico.</p></section>
     </section>
+    <aside class="diagnostics-drawer" id="diagnosticsDrawer" hidden>
+      <div class="diagnostics-drawer__head"><div><span class="eyebrow">DIAGNÓSTICO TÉCNICO</span><h2>Estado do sistema</h2></div><button id="diagnosticsClose" type="button" aria-label="Fechar diagnóstico">×</button></div>
+      <dl class="diagnostics-grid"><div><dt>Motor</dt><dd id="engineState">uninitialized</dd></div><div><dt>AudioContext</dt><dd id="contextState">absent</dd></div><div><dt>Pausa</dt><dd id="pauseReason">none</dd></div><div><dt>Interação</dt><dd id="interactionRequired">não</dd></div><div><dt>Wake Lock</dt><dd id="wakeLockStatus">unsupported</dd></div><div><dt>PWA</dt><dd id="pwaStatus">idle</dd></div><div><dt>Rede</dt><dd id="onlineStatus">online</dd></div><div><dt>Visibilidade</dt><dd id="visibilityStatus">visible</dd></div><div><dt>Tempo decorrido</dt><dd id="elapsed">0.00 s</dd></div><div><dt>Cadeia ativa</dt><dd id="graphActive">não</dd></div></dl>
+      <p class="recovery-message" id="recoveryMessage" role="status"></p>
+      <div class="drawer-actions"><button id="recoverButton" type="button">Recuperar após toque</button><button id="checkUpdateButton" type="button">Verificar atualização</button><button id="applyUpdateButton" type="button">Aplicar atualização</button></div>
+      <details><summary>Eventos locais</summary><ol id="eventLog" class="event-log"></ol></details>
+    </aside>
   </main>
-
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
   <script type="module" src="./src/main.js"></script>
 </body>
 </html>
